@@ -19,6 +19,12 @@ import moviepy.editor as mp
 import re
 from pathlib import Path
 import io
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+FAL_API_KEY = os.getenv("FAL_API_KEY")
 
 # Create directories for storing assets and rendered videos
 os.makedirs("assets/audio", exist_ok=True)
@@ -42,18 +48,15 @@ app.add_middleware(
 # Serve static files
 app.mount("/static", StaticFiles(directory="rendered"), name="static")
 app.mount("/images", StaticFiles(directory="assets/images"), name="images")
-
-# API Keys (in a real app, store these more securely in env variables)
-OPENAI_API_KEY = "your_openai_api_key_here"
-FAL_API_KEY = "your_fal_api_key_here"
+app.mount("/audio", StaticFiles(directory="assets/audio"), name="audio")
 
 # Models
 class TimelineSegment(BaseModel):
     id: str
     type: str
     text: str
-    duration: int
-    mediaType: str = "color"
+    duration: int = 3  # Default to 3 seconds (2-4s range, capped)
+    mediaType: str = "image"  # Default to image for visuals
     background: str = "#1e293b"
     visualPrompt: str = ""
     imageUrl: Optional[str] = None
@@ -69,6 +72,7 @@ class ScriptRequest(BaseModel):
     tone: str = "informative"
     selected_template: Optional[str] = None
     segmentTypes: List[str]
+    target_duration: Optional[int] = None  # Target video length in seconds
     
 class ScriptTemplate(BaseModel):
     id: str
@@ -125,11 +129,11 @@ script_templates = [
         "name": "Problem-Solution",
         "description": "Introduces a problem and presents your product/service as the solution",
         "structure": [
-            {"type": "intro", "purpose": "Introduce the problem that many face"},
-            {"type": "point", "purpose": "Explain why the problem persists"},
-            {"type": "point", "purpose": "Introduce your solution"},
-            {"type": "point", "purpose": "Show benefits and results"},
-            {"type": "conclusion", "purpose": "Call to action"}
+            {"type": "intro", "purpose": "Introduce the problem briefly (1 sentence)"},
+            {"type": "point", "purpose": "Explain the issue briefly (1 sentence)"},
+            {"type": "point", "purpose": "Introduce solution briefly (1 sentence)"},
+            {"type": "point", "purpose": "Show benefits briefly (1 sentence)"},
+            {"type": "conclusion", "purpose": "Call to action (1 sentence)"}
         ]
     },
     {
@@ -137,11 +141,11 @@ script_templates = [
         "name": "How-To Tutorial",
         "description": "Step-by-step instructions to accomplish a specific task",
         "structure": [
-            {"type": "intro", "purpose": "Introduce what viewers will learn"},
-            {"type": "point", "purpose": "Step 1 with details"},
-            {"type": "point", "purpose": "Step 2 with details"},
-            {"type": "point", "purpose": "Step 3 with details"},
-            {"type": "conclusion", "purpose": "Recap and benefits"}
+            {"type": "intro", "purpose": "Introduce what viewers will learn briefly (1 sentence)"},
+            {"type": "point", "purpose": "Step 1 briefly (1 sentence)"},
+            {"type": "point", "purpose": "Step 2 briefly (1 sentence)"},
+            {"type": "point", "purpose": "Step 3 briefly (1 sentence)"},
+            {"type": "conclusion", "purpose": "Recap and benefits briefly (1 sentence)"}
         ]
     },
     {
@@ -149,13 +153,13 @@ script_templates = [
         "name": "Listicle (Top 5)",
         "description": "Presents a list of tips, ideas, or products",
         "structure": [
-            {"type": "intro", "purpose": "Introduce the topic and why it matters"},
-            {"type": "point", "purpose": "Item #1 with explanation"},
-            {"type": "point", "purpose": "Item #2 with explanation"},
-            {"type": "point", "purpose": "Item #3 with explanation"},
-            {"type": "point", "purpose": "Item #4 with explanation"},
-            {"type": "point", "purpose": "Item #5 with explanation"},
-            {"type": "conclusion", "purpose": "Summarize and call to action"}
+            {"type": "intro", "purpose": "Introduce the topic briefly (1 sentence)"},
+            {"type": "point", "purpose": "Item #1 briefly (1 sentence)"},
+            {"type": "point", "purpose": "Item #2 briefly (1 sentence)"},
+            {"type": "point", "purpose": "Item #3 briefly (1 sentence)"},
+            {"type": "point", "purpose": "Item #4 briefly (1 sentence)"},
+            {"type": "point", "purpose": "Item #5 briefly (1 sentence)"},
+            {"type": "conclusion", "purpose": "Summarize and call to action briefly (1 sentence)"}
         ]
     }
 ]
@@ -185,21 +189,14 @@ async def stream_video(video_id: int):
     """Stream a video file"""
     for video in videos:
         if video["id"] == video_id and video["status"] == "ready":
-            # In a real app, we'd have a database mapping video_id to file
             file_path = f"rendered/video_{video_id}.mp4"
-            
-            # For demo purposes, send a sample video if exists
             if os.path.exists(file_path):
                 return FileResponse(file_path)
             else:
-                # For testing, we'll use a placeholder video if we have it
                 placeholder_path = "assets/videos/placeholder.mp4"
                 if os.path.exists(placeholder_path):
                     return FileResponse(placeholder_path, media_type="video/mp4")
-                
-                # If no placeholder, return an error
                 raise HTTPException(status_code=404, detail="Video file not found")
-                
     raise HTTPException(status_code=404, detail="Video not found or not ready")
 
 @app.get("/api/script-templates")
@@ -219,10 +216,7 @@ async def save_timeline(video_id: int, timeline_data: TimelineData):
     if not video_found:
         raise HTTPException(status_code=404, detail="Video not found")
         
-    # Save timeline to dictionary (in a real app, would save to database)
     timelines[video_id] = timeline_data.dict()
-    
-    # Also save to disk as JSON for persistence
     with open(f"projects/timeline_{video_id}.json", "w") as f:
         json.dump(timeline_data.dict(), f)
     
@@ -231,31 +225,27 @@ async def save_timeline(video_id: int, timeline_data: TimelineData):
 @app.get("/api/timeline/{video_id}")
 async def get_timeline(video_id: int):
     """Get the timeline for a video"""
-    # First check if we have it in memory
     if video_id in timelines:
         return timelines[video_id]
     
-    # If not, try to load from disk
     try:
         with open(f"projects/timeline_{video_id}.json", "r") as f:
             timeline = json.load(f)
             timelines[video_id] = timeline
             return timeline
     except:
-        # Generate default segments for this video
         segments = [
             {
                 "id": f"default_{i}_{int(time.time())}",
                 "type": segment_type,
                 "text": "",
-                "duration": 5,
-                "mediaType": "color",
+                "duration": 3,  # Default to 3 seconds (2-4s range)
+                "mediaType": "image",
                 "background": "#1e293b",
                 "visualPrompt": ""
             }
             for i, segment_type in enumerate(["intro", "point", "point", "conclusion"])
         ]
-        
         timeline = {"segments": segments}
         timelines[video_id] = timeline
         return timeline
@@ -263,7 +253,6 @@ async def get_timeline(video_id: int):
 @app.post("/api/generate-script/{video_id}")
 async def generate_script(video_id: int, request: ScriptRequest):
     """Generate script content for timeline segments using OpenAI"""
-    # Find the video
     video_found = False
     for video in videos:
         if video["id"] == video_id:
@@ -275,7 +264,6 @@ async def generate_script(video_id: int, request: ScriptRequest):
         raise HTTPException(status_code=404, detail="Video not found")
     
     try:
-        # Get the selected template if provided
         template = None
         if request.selected_template:
             for t in script_templates:
@@ -283,14 +271,21 @@ async def generate_script(video_id: int, request: ScriptRequest):
                     template = t
                     break
         
-        # If no template is specified or found, use a default structure
         if not template:
             segment_structure = request.segmentTypes
         else:
-            # Use the template's structure
             segment_structure = [s["type"] for s in template["structure"]]
         
-        # Prepare our prompt for OpenAI
+        # Calculate number of segments based on target duration (if provided)
+        num_segments = len(segment_structure)
+        if request.target_duration:
+            avg_duration = max(2, min(4, request.target_duration // num_segments))  # Ensure 2-4s per segment
+            num_segments = max(1, request.target_duration // 4)  # Minimum 1 segment, max ~4s each
+            if num_segments < len(segment_structure):
+                segment_structure = segment_structure[:num_segments]
+            elif num_segments > len(segment_structure):
+                segment_structure.extend([segment_structure[-1]] * (num_segments - len(segment_structure)))
+
         prompt = f"""
         Create a script for a short-form video about {request.title}.
         
@@ -299,31 +294,18 @@ async def generate_script(video_id: int, request: ScriptRequest):
         Target Audience: {request.target_audience}
         Tone: {request.tone}
         
-        The script should be divided into the following segments:
-        """
-        
-        # Add segment details based on template
-        if template:
-            for i, segment in enumerate(template["structure"]):
-                prompt += f"\n{i+1}. {segment['type'].upper()}: {segment['purpose']}"
-        else:
-            for i, segment_type in enumerate(request.segmentTypes):
-                prompt += f"\n{i+1}. {segment_type.upper()}"
-        
-        prompt += """
-        
-        For each segment, provide:
-        1. Script text (concise, conversational, and engaging)
-        2. Visual description (what should appear on screen)
+        The script should be divided into {num_segments} segments, each lasting approximately {avg_duration} seconds.
+        Each segment should have:
+        1. Script text (1 concise sentence, under 8 words, conversational, and engaging)
+        2. Visual description (what should appear on screen, detailed but brief, for images or videos)
         
         Format your response as a JSON array with each segment having:
-        - text: The script to be read
-        - visualPrompt: Description of what should be shown visually
+        - text: The script to be read (1 sentence, max 8 words)
+        - visualPrompt: Description of what should be shown visually (brief, actionable)
         
-        Keep each segment's script under 30 words for short-form video pacing.
+        Keep the pacing fast to maintain viewer retention for a short-form video.
         """
         
-        # Make API call to OpenAI
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 "https://api.openai.com/v1/chat/completions",
@@ -334,7 +316,7 @@ async def generate_script(video_id: int, request: ScriptRequest):
                 json={
                     "model": "gpt-4",
                     "messages": [
-                        {"role": "system", "content": "You are an expert scriptwriter for short-form videos."},
+                        {"role": "system", "content": "You are an expert scriptwriter for short-form videos, focusing on 2-4 second segments with one sentence per slide (max 8 words)."},
                         {"role": "user", "content": prompt}
                     ],
                     "temperature": 0.7,
@@ -349,13 +331,10 @@ async def generate_script(video_id: int, request: ScriptRequest):
             result = response.json()
             content = result["choices"][0]["message"]["content"]
             
-            # Extract the JSON part from the response
-            # This handles if the AI wraps the JSON in markdown or explanatory text
             json_match = re.search(r'\[.*\]', content, re.DOTALL)
             if json_match:
                 json_content = json_match.group(0)
             else:
-                # If no array is found, try to find JSON object
                 json_match = re.search(r'\{.*\}', content, re.DOTALL)
                 if json_match:
                     json_content = json_match.group(0)
@@ -364,22 +343,23 @@ async def generate_script(video_id: int, request: ScriptRequest):
             
             try:
                 segments = json.loads(json_content)
-                
-                # If segments is a dict with a segments key, extract that
                 if isinstance(segments, dict) and "segments" in segments:
                     segments = segments["segments"]
                 
-                # Ensure we have enough segments
+                # Ensure segments match structure length and enforce one sentence (max 8 words)
                 if len(segments) < len(segment_structure):
-                    # Fill in any missing segments
                     while len(segments) < len(segment_structure):
                         segments.append({
-                            "text": f"Additional content for {segment_structure[len(segments)]}",
+                            "text": "Brief additional content here.",
                             "visualPrompt": "Generic visual related to the topic"
                         })
-                        
-                # Truncate if we have too many
                 segments = segments[:len(segment_structure)]
+                
+                # Validate text length (max 15 words per segment)
+                for segment in segments:
+                    words = segment["text"].split()
+                    if len(words) > 8:
+                        segment["text"] = " ".join(words[:8]) + "..."  # Truncate to 15 words
                 
                 return {"segments": segments}
                 
@@ -394,10 +374,9 @@ async def generate_script(video_id: int, request: ScriptRequest):
 async def generate_image(request: GenerateImageRequest):
     """Generate an image for a segment using FAL"""
     try:
-        # Prepare the request to FAL API
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
-                "https://fal.run/fal-ai/stable-diffusion",  # Replace with your specific FAL endpoint
+                "https://fal.run/fal-ai/stable-diffusion",
                 headers={
                     "Authorization": f"Key {FAL_API_KEY}",
                     "Content-Type": "application/json"
@@ -406,7 +385,7 @@ async def generate_image(request: GenerateImageRequest):
                     "prompt": f"{request.prompt}, {request.style} style, high quality, detailed",
                     "negative_prompt": "blurry, low quality, distorted, deformed",
                     "width": 512,
-                    "height": 912,  # 16:9 aspect ratio for portrait mode
+                    "height": 912,
                     "num_inference_steps": 30
                 }
             )
@@ -416,22 +395,16 @@ async def generate_image(request: GenerateImageRequest):
                 raise HTTPException(status_code=500, detail=f"FAL API error: {response.text}")
             
             result = response.json()
-            
-            # Extract the image data
             image_data = result.get("images", [{}])[0].get("base64")
             if not image_data:
                 raise HTTPException(status_code=500, detail="No image data received from FAL")
             
-            # Save the image to disk
             image_id = f"img_{request.segment_id}_{int(time.time())}"
             image_path = f"assets/images/{image_id}.jpg"
-            
-            # Decode base64 and save
             image_bytes = base64.b64decode(image_data)
             with open(image_path, "wb") as f:
                 f.write(image_bytes)
             
-            # Store the mapping
             if request.segment_id not in generated_images:
                 generated_images[request.segment_id] = []
             
@@ -457,6 +430,53 @@ async def get_segment_images(segment_id: str):
         return {"images": generated_images[segment_id]}
     return {"images": []}
 
+@app.post("/api/transcribe-audio")
+async def transcribe_audio(file: UploadFile = File(...)):
+    """Transcribe uploaded audio using Whisper"""
+    try:
+        import whisper
+        model = whisper.load_model("base")
+        audio_path = f"assets/audio/{file.filename}"
+        with open(audio_path, "wb") as f:
+            f.write(await file.read())
+        result = model.transcribe(audio_path)
+        os.remove(audio_path)
+        return {"text": result["text"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transcription error: {str(e)}")
+
+@app.get("/api/audio/preview/{track}")
+async def preview_music(track: str):
+    """Stream a preview of a music track (first 10 seconds)"""
+    music_path = f"assets/audio/{track}.mp3"
+    if not os.path.exists(music_path):
+        raise HTTPException(status_code=404, detail="Music track not found")
+    
+    def iterfile():
+        with open(music_path, "rb") as f:
+            # Read only the first 10 seconds (assuming 44.1kHz, ~441,000 bytes per second)
+            chunk_size = 441000 * 10  # 10 seconds at 44.1kHz
+            data = f.read(chunk_size)
+            while data:
+                yield data
+                data = f.read(chunk_size)
+    
+    return StreamingResponse(iterfile(), media_type="audio/mpeg")
+
+@app.get("/api/voice/preview")
+async def preview_voice():
+    """Stream a preview of a male voice (sample line)"""
+    sample_text = "Hello, this is a sample male voice for your video."
+    tts = gTTS(text=sample_text, lang='en', tld='us', gender='male')  # gTTS supports gender='male'
+    audio_file = io.BytesIO()
+    tts.write_to_fp(audio_file)
+    audio_file.seek(0)
+    
+    def iterfile():
+        yield audio_file.read()
+    
+    return StreamingResponse(iterfile(), media_type="audio/mpeg")
+
 async def render_video_task(video_id: int, voice_id: int, format: str, resolution: str, editing_style: str, music_track: Optional[str], music_volume: float):
     """Background task to render a video"""
     video_found = False
@@ -471,16 +491,13 @@ async def render_video_task(video_id: int, voice_id: int, format: str, resolutio
         print(f"Video {video_id} not found")
         return
     
-    # Load timeline
     if video_id not in timelines:
-        # Try to load from disk
         try:
             with open(f"projects/timeline_{video_id}.json", "r") as f:
                 timeline = json.load(f)
                 timelines[video_id] = timeline
         except:
             print(f"Timeline for video {video_id} not found")
-            # Mark rendering as failed
             for i, video in enumerate(videos):
                 if video["id"] == video_id:
                     videos[i]["status"] = "draft"
@@ -489,82 +506,74 @@ async def render_video_task(video_id: int, voice_id: int, format: str, resolutio
     
     timeline = timelines[video_id]
     segments = timeline["segments"]
-    
-    # Create clips for each segment
     clips = []
     audio_clips = []
     
-    # Update progress
     for i, video in enumerate(videos):
         if video["id"] == video_id:
             videos[i]["progress"] = 10
             break
     
-    # Parse resolution
     if resolution == "720p":
-        clip_width, clip_height = 720, 1280  # Portrait mode for social
+        clip_width, clip_height = 720, 1280
     elif resolution == "1080p":
         clip_width, clip_height = 1080, 1920
     else:
-        clip_width, clip_height = 720, 720  # Square format
+        clip_width, clip_height = 720, 720
     
-    # Create a total duration counter for the video
     total_duration = 0
     
     for idx, segment in enumerate(segments):
-        # Update progress incrementally
         progress = 10 + int(70 * (idx / len(segments)))
         for i, video in enumerate(videos):
             if video["id"] == video_id:
                 videos[i]["progress"] = progress
                 break
                 
-        # Generate TTS audio for the segment
         if segment["text"]:
-            # Convert text to speech
-            tts = gTTS(text=segment["text"], lang='en', slow=False)
+            # Use male voice for TTS
+            tts = gTTS(text=segment["text"], lang='en', tld='us', gender='male', slow=False)
             audio_file = f"assets/audio/segment_{video_id}_{idx}.mp3"
             tts.save(audio_file)
             audio_duration = mp.AudioFileClip(audio_file).duration
-            
-            # Make sure segment duration is at least as long as audio
-            duration = max(segment.get("duration", 5), audio_duration)
-            
-            # Create audio clip
-            audio_clip = mp.AudioFileClip(audio_file)
+            duration = max(2, min(4, segment.get("duration", 3)))  # Ensure 2-4 seconds
+            audio_clip = mp.AudioFileClip(audio_file).subclip(0, duration)  # Trim to match duration
             audio_clips.append(audio_clip)
         else:
-            # No speech, just use the segment duration
-            duration = segment.get("duration", 5)
+            duration = max(2, min(4, segment.get("duration", 3)))  # Ensure 2-4 seconds
         
-        # Create video clip based on mediaType
+        # Use image or video if available, otherwise fall back to color
         if segment.get("mediaType") == "image" and segment.get("imageUrl"):
-            # Use generated image if available
             image_path = f"assets/images/{os.path.basename(segment['imageUrl'])}"
             if os.path.exists(image_path):
                 clip = mp.ImageClip(image_path, duration=duration)
                 clip = clip.resize(height=clip_height)
-                
-                # Center crop if needed
                 if clip.w > clip_width:
-                    clip = clip.crop(x_center=clip.w/2, y_center=clip.h/2, 
-                                    width=clip_width, height=clip_height)
+                    clip = clip.crop(x_center=clip.w/2, y_center=clip.h/2, width=clip_width, height=clip_height)
             else:
-                # Fallback to colored clip
+                clip = mp.ColorClip(size=(clip_width, clip_height), 
+                                   color=hex_to_rgb(segment.get("background", "#1e293b")), 
+                                   duration=duration)
+        elif segment.get("mediaType") == "video" and segment.get("imageUrl"):
+            video_path = f"assets/videos/{os.path.basename(segment['imageUrl'])}"
+            if os.path.exists(video_path):
+                clip = mp.VideoFileClip(video_path).subclip(0, duration)
+                clip = clip.resize(height=clip_height)
+                if clip.w > clip_width:
+                    clip = clip.crop(x_center=clip.w/2, y_center=clip.h/2, width=clip_width, height=clip_height)
+            else:
                 clip = mp.ColorClip(size=(clip_width, clip_height), 
                                    color=hex_to_rgb(segment.get("background", "#1e293b")), 
                                    duration=duration)
         else:
-            # Create a colored clip
             clip = mp.ColorClip(size=(clip_width, clip_height),
                                color=hex_to_rgb(segment.get("background", "#1e293b")),
                                duration=duration)
         
-        # Add text overlay
         if segment["text"]:
             txt_clip = mp.TextClip(
                 segment["text"], 
-                fontsize=int(clip_width/20),  # Responsive font size
+                fontsize=int(clip_width/20),
                 color='white',
                 font='Arial',
                 size=(clip_width * 0.9, None),
@@ -574,9 +583,7 @@ async def render_video_task(video_id: int, voice_id: int, format: str, resolutio
             txt_clip = txt_clip.set_position('center').set_duration(duration)
             clip = mp.CompositeVideoClip([clip, txt_clip])
             
-        # Apply editing style effects
         if editing_style == "zoom":
-            # Create a zoom effect
             start_scale = 1.0
             end_scale = 1.2
             clip = clip.fx(
@@ -584,55 +591,38 @@ async def render_video_task(video_id: int, voice_id: int, format: str, resolutio
                 lambda t: max(start_scale, min(start_scale + t/duration*(end_scale-start_scale), end_scale))
             )
         elif editing_style == "fade":
-            # Add fade in/out
             clip = clip.fx(mp.vfx.fadein, 0.5).fx(mp.vfx.fadeout, 0.5)
         
         clips.append(clip)
         total_duration += duration
-        
-        # Simulate rendering time (remove in production)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.1)  # Reduced sleep for faster rendering
     
-    # Update progress
     for i, video in enumerate(videos):
         if video["id"] == video_id:
             videos[i]["progress"] = 80
             break
     
-    # Concatenate all clips
     final_clip = mp.concatenate_videoclips(clips)
     
-    # Add audio
     if audio_clips:
         final_audio = mp.concatenate_audioclips(audio_clips)
-        
-        # Add background music if specified
         if music_track:
             music_path = f"assets/audio/{music_track}.mp3"
             if os.path.exists(music_path):
                 music = mp.AudioFileClip(music_path)
-                
-                # Loop music if needed
                 if music.duration < final_audio.duration:
                     repeats = int(final_audio.duration / music.duration) + 1
                     music = mp.concatenate_audioclips([music] * repeats)
-                
-                # Trim to match final audio length
                 music = music.subclip(0, final_audio.duration)
-                
-                # Mix with adjusted volume
                 final_audio = mp.CompositeAudioClip([
                     final_audio,
                     music.volumex(music_volume)
                 ])
-        
         final_clip = final_clip.set_audio(final_audio)
     
-    # Save the result
     output_file = f"rendered/video_{video_id}.{format}"
     final_clip.write_videofile(output_file, fps=30, codec='libx264', audio_codec='aac')
     
-    # Update video metadata
     minutes = int(total_duration // 60)
     seconds = int(total_duration % 60)
     duration_str = f"{minutes}:{seconds:02d}"
@@ -644,7 +634,6 @@ async def render_video_task(video_id: int, voice_id: int, format: str, resolutio
             videos[i]["duration"] = duration_str
             break
     
-    # Clean up temporary audio files
     for idx in range(len(segments)):
         audio_file = f"assets/audio/segment_{video_id}_{idx}.mp3"
         if os.path.exists(audio_file):
@@ -653,7 +642,6 @@ async def render_video_task(video_id: int, voice_id: int, format: str, resolutio
 @app.post("/api/render/{video_id}")
 async def render_video(video_id: int, request: RenderRequest, background_tasks: BackgroundTasks):
     """Start rendering a video"""
-    # Find the video
     video_found = False
     for video in videos:
         if video["id"] == video_id:
@@ -663,7 +651,6 @@ async def render_video(video_id: int, request: RenderRequest, background_tasks: 
     if not video_found:
         raise HTTPException(status_code=404, detail="Video not found")
     
-    # Add rendering task to background tasks
     background_tasks.add_task(
         render_video_task, 
         video_id, 
@@ -686,7 +673,6 @@ async def get_progress(video_id: int):
                 "status": video["status"],
                 "progress": video["progress"]
             }
-    
     raise HTTPException(status_code=404, detail="Video not found")
 
 # Helper function to convert hex color to RGB tuple
@@ -713,19 +699,13 @@ def create_placeholder_video():
 # Create sample music tracks
 def create_sample_music():
     if not os.path.exists("assets/audio/energetic.mp3"):
-        # Create a silent placeholder
-        try:
-            with open("assets/audio/energetic.mp3", "wb") as f:
-                f.write(b'')
-        except:
-            pass
-            
+        # Generate a 30-second energetic tone as a placeholder
+        silence = mp.AudioClip(lambda t: 0.5 * (1 + 0.5 * mp.cos(2 * 3.14159 * 440 * t)), duration=30, fps=44100)
+        silence.write_audiofile("assets/audio/energetic.mp3", fps=44100)
     if not os.path.exists("assets/audio/chill.mp3"):
-        try:
-            with open("assets/audio/chill.mp3", "wb") as f:
-                f.write(b'')
-        except:
-            pass
+        # Generate a 30-second chill tone as a placeholder
+        silence = mp.AudioClip(lambda t: 0.3 * (1 + 0.3 * mp.cos(2 * 3.14159 * 220 * t)), duration=30, fps=44100)
+        silence.write_audiofile("assets/audio/chill.mp3", fps=44100)
 
 # Create sample script templates
 def create_script_templates():

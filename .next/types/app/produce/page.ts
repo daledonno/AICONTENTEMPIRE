@@ -1,4 +1,4 @@
-// File: /Users/dale/Creative Cloud Files/AI CONTENT EMPIRE - OFFLINE/app/produce/page.js
+// File: /Users/dale/Creative Cloud Files/aiempire/app/produce/page.js
 import * as entry from '../../../../app/produce/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

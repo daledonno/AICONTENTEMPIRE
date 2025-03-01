@@ -1,4 +1,4 @@
-// File: /Users/dale/Creative Cloud Files/AI CONTENT EMPIRE - OFFLINE/app/calendar/page.js
+// File: /Users/dale/Creative Cloud Files/aiempire/app/calendar/page.js
 import * as entry from '../../../../app/calendar/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

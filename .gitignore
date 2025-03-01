@@ -2,3 +2,5 @@
 node_modules/
 __pycache__/
 *.pyc
+ai-content-backend/.env
+ai-content-backend/venv/
