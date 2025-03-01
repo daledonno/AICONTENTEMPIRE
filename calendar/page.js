@@ -226,6 +226,7 @@ export default function ContentCalendar() {
           </button>
         </div>
       </div>
+
       {/* Calendar header */}
       <div className="card mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -266,6 +267,7 @@ export default function ContentCalendar() {
             </button>
           </div>
         </div>
+
         {/* Platform filters */}
         <div className="flex flex-wrap gap-2 mb-4">
           <button className="flex items-center px-3 py-1 rounded-full bg-red-900 bg-opacity-20 text-red-400 text-sm">
@@ -328,6 +330,7 @@ export default function ContentCalendar() {
                     )}
                   </div>
                 </div>
+
                 <div className="flex space-x-2">
                   <button className="btn-outline p-1">
                     <Edit size={16} />
@@ -344,6 +347,7 @@ export default function ContentCalendar() {
           </div>
         )}
       </div>
+
       {/* Quick scheduling section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="card">
@@ -360,6 +364,7 @@ export default function ContentCalendar() {
                 <option>AI in Healthcare Applications</option>
               </select>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Date</label>
@@ -394,11 +399,13 @@ export default function ContentCalendar() {
                 </button>
               </div>
             </div>
+
             <div className="flex justify-end">
               <button className="btn-primary">Schedule</button>
             </div>
           </div>
         </div>
+
         <div className="card">
           <h2 className="text-lg font-bold mb-4">Upcoming Schedule</h2>
           <div className="space-y-3">

@@ -170,6 +170,7 @@ export default function RootLayout({ children }) {
                       </div>
                     </div>
                   ))}
+
                   <div className="border-t border-gray-700 p-2">
                     <button className="w-full text-left text-sm p-2 rounded hover:bg-gray-700 flex items-center">
                       <User size={14} className="mr-2" />

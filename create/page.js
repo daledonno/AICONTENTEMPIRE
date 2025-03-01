@@ -115,6 +115,7 @@ Which of these AI image generators are you most excited to try? Let me know in t
           </button>
         </div>
       </div>
+
       {/* Editor header */}
       <div className="card mb-6">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
@@ -135,6 +136,7 @@ Which of these AI image generators are you most excited to try? Let me know in t
               <Layout size={16} className="mr-2" />
               Templates
             </button>
+
             <button className="btn-outline flex items-center">
               <Sliders size={16} className="mr-2" />
               Settings
@@ -142,6 +144,7 @@ Which of these AI image generators are you most excited to try? Let me know in t
           </div>
         </div>
       </div>
+
       {/* Template selector (conditionally shown) */}
       {showTemplates && (
         <div className="card mb-6">
@@ -201,6 +204,7 @@ Which of these AI image generators are you most excited to try? Let me know in t
             Preview
           </button>
         </div>
+
         {/* Editor toolbar */}
         <div className="flex items-center gap-2 mb-3">
           <button className="btn-outline py-1 px-2">
@@ -241,6 +245,7 @@ Which of these AI image generators are you most excited to try? Let me know in t
           value={scriptContent}
           onChange={() => {}}
         ></textarea>
+
         {/* AI assistance area */}
         <div className="mt-6 border-t border-gray-700 pt-4">
           <h3 className="font-bold mb-2">AI Assistance</h3>
@@ -261,6 +266,7 @@ Which of these AI image generators are you most excited to try? Let me know in t
           </div>
         </div>
       </div>
+
       {/* Related content */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="card">
