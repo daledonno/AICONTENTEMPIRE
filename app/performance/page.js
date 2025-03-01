@@ -1,4 +1,3 @@
-// app/performance/page.js
 "use client";
 
 import { useState } from "react";
@@ -34,25 +33,25 @@ export default function PerformanceTracker() {
       label: "Total Views",
       value: "54.3K",
       change: "+18%",
-      icon: <Eye size={24} />,
+      icon: <Eye size={24} className="text-gray-400" />,
     },
     {
       label: "Watch Time (hrs)",
       value: "982",
       change: "+12%",
-      icon: <Clock size={24} />,
+      icon: <Clock size={24} className="text-gray-400" />,
     },
     {
       label: "Subscribers",
       value: "3,241",
       change: "+7%",
-      icon: <Users size={24} />,
+      icon: <Users size={24} className="text-gray-400" />,
     },
     {
       label: "Engagement Rate",
       value: "6.8%",
       change: "+2.3%",
-      icon: <ThumbsUp size={24} />,
+      icon: <ThumbsUp size={24} className="text-gray-400" />,
     },
   ];
 
@@ -134,15 +133,15 @@ export default function PerformanceTracker() {
   const getPlatformIcon = (platform) => {
     switch (platform) {
       case "youtube":
-        return <Youtube size={16} />;
+        return <Youtube size={16} className="text-gray-400" />;
       case "twitter":
-        return <Twitter size={16} />;
+        return <Twitter size={16} className="text-gray-400" />;
       case "facebook":
-        return <Facebook size={16} />;
+        return <Facebook size={16} className="text-gray-400" />;
       case "instagram":
-        return <Instagram size={16} />;
+        return <Instagram size={16} className="text-gray-400" />;
       case "linkedin":
-        return <Linkedin size={16} />;
+        return <Linkedin size={16} className="text-gray-400" />;
       default:
         return null;
     }
@@ -157,27 +156,27 @@ export default function PerformanceTracker() {
         );
 
   return (
-    <div>
+    <div className="container mx-auto p-4 min-h-screen bg-gray-900 text-white">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Performance Tracker</h1>
         <div className="flex space-x-3">
           <div className="relative">
             <select
-              className="input pr-10"
+              className="input pr-10 bg-gray-800 border-gray-700 text-white"
               value={timeframe}
               onChange={(e) => setTimeframe(e.target.value)}
             >
-              <option value="7days">Last 7 days</option>
-              <option value="30days">Last 30 days</option>
-              <option value="90days">Last 90 days</option>
-              <option value="year">Last year</option>
+              <option value="7days" className="bg-gray-900 text-white">Last 7 days</option>
+              <option value="30days" className="bg-gray-900 text-white">Last 30 days</option>
+              <option value="90days" className="bg-gray-900 text-white">Last 90 days</option>
+              <option value="year" className="bg-gray-900 text-white">Last year</option>
             </select>
             <ChevronDown
               size={16}
               className="absolute right-3 top-3 text-gray-400 pointer-events-none"
             />
           </div>
-          <button className="btn-outline flex items-center">
+          <button className="btn-outline flex items-center border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white">
             <Filter size={16} className="mr-2" />
             Filter
           </button>
@@ -191,14 +190,14 @@ export default function PerformanceTracker() {
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {overviewStats.map((stat, index) => (
-          <div key={index} className="card flex items-center">
+          <div key={index} className="card flex items-center bg-gray-800 border-gray-700">
             <div className="mr-4 bg-purple-900 bg-opacity-30 p-3 rounded-lg">
               {stat.icon}
             </div>
             <div>
               <p className="text-gray-400 text-sm">{stat.label}</p>
               <div className="flex items-center">
-                <h3 className="text-2xl font-bold mr-2">{stat.value}</h3>
+                <h3 className="text-2xl font-bold mr-2 text-white">{stat.value}</h3>
                 <span className="text-green-400 text-sm">{stat.change}</span>
               </div>
             </div>
@@ -207,24 +206,24 @@ export default function PerformanceTracker() {
       </div>
 
       {/* Growth Charts */}
-      <div className="card mb-8">
+      <div className="card mb-8 bg-gray-800 border-gray-700">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold">Growth Metrics</h2>
           <div className="flex border border-gray-700 rounded-lg overflow-hidden">
-            <button className="px-3 py-1 bg-gray-700">Views</button>
-            <button className="px-3 py-1 bg-transparent">Engagement</button>
-            <button className="px-3 py-1 bg-transparent">Followers</button>
+            <button className="px-3 py-1 bg-gray-700 text-white">Views</button>
+            <button className="px-3 py-1 bg-gray-800 border-l border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white">Engagement</button>
+            <button className="px-3 py-1 bg-gray-800 border-l border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-white">Followers</button>
           </div>
         </div>
 
         <div className="h-64 bg-gray-800 rounded-lg flex items-center justify-center">
           {/* Placeholder for chart */}
-          <BarChart2 size={48} className="text-gray-500" />
+          <BarChart2 size={48} className="text-gray-400" />
         </div>
       </div>
 
       {/* Content Performance */}
-      <div className="card mb-8">
+      <div className="card mb-8 bg-gray-800 border-gray-700">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">Content Performance</h2>
 
@@ -234,7 +233,7 @@ export default function PerformanceTracker() {
               className={`px-3 py-1 rounded-full text-sm ${
                 platformFilter === "all"
                   ? "bg-purple-600 text-white"
-                  : "bg-gray-700"
+                  : "bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white"
               }`}
               onClick={() => setPlatformFilter("all")}
             >
@@ -244,7 +243,7 @@ export default function PerformanceTracker() {
               className={`flex items-center px-3 py-1 rounded-full text-sm ${
                 platformFilter === "youtube"
                   ? "bg-red-600 text-white"
-                  : "bg-gray-700"
+                  : "bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white"
               }`}
               onClick={() => setPlatformFilter("youtube")}
             >
@@ -255,7 +254,7 @@ export default function PerformanceTracker() {
               className={`flex items-center px-3 py-1 rounded-full text-sm ${
                 platformFilter === "twitter"
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-700"
+                  : "bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white"
               }`}
               onClick={() => setPlatformFilter("twitter")}
             >
@@ -266,7 +265,7 @@ export default function PerformanceTracker() {
               className={`flex items-center px-3 py-1 rounded-full text-sm ${
                 platformFilter === "linkedin"
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-700"
+                  : "bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-white"
               }`}
               onClick={() => setPlatformFilter("linkedin")}
             >
@@ -299,10 +298,10 @@ export default function PerformanceTracker() {
               {filteredContent.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-b border-gray-700 hover:bg-gray-700"
+                  className="border-b border-gray-700 hover:bg-gray-800"
                 >
                   <td className="py-3 px-4">
-                    <div className="font-medium">{item.title}</div>
+                    <div className="font-medium text-white">{item.title}</div>
                   </td>
                   <td className="py-3 px-4 text-center">
                     <div className="text-sm text-gray-400">{item.date}</div>
@@ -316,23 +315,23 @@ export default function PerformanceTracker() {
                       ))}
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-center">
+                  <td className="py-3 px-4 text-center text-white">
                     {item.metrics.views.toLocaleString()}
                   </td>
-                  <td className="py-3 px-4 text-center">
+                  <td className="py-3 px-4 text-center text-white">
                     {item.metrics.likes.toLocaleString()}
                   </td>
-                  <td className="py-3 px-4 text-center">
+                  <td className="py-3 px-4 text-center text-white">
                     {item.metrics.comments.toLocaleString()}
                   </td>
-                  <td className="py-3 px-4 text-center">
+                  <td className="py-3 px-4 text-center text-white">
                     {item.metrics.shares.toLocaleString()}
                   </td>
                   <td className="py-3 px-4 text-center">
                     <span className="text-green-400">{item.growth}</span>
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <button className="btn-outline text-sm py-1">
+                    <button className="btn-outline text-sm py-1 text-purple-400 border-purple-600 hover:bg-purple-600 hover:text-white">
                       Details
                     </button>
                   </td>
@@ -345,19 +344,19 @@ export default function PerformanceTracker() {
 
       {/* Performance Insights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="card">
-          <h2 className="text-lg font-bold mb-4">Top Performers</h2>
+        <div className="card bg-gray-800 border-gray-700">
+          <h2 className="text-lg font-bold mb-4 text-white">Top Performers</h2>
           <div className="space-y-4">
             {filteredContent
               .sort((a, b) => b.metrics.views - a.metrics.views)
               .slice(0, 3)
               .map((item, index) => (
                 <div key={item.id} className="flex items-start">
-                  <div className="mr-3 bg-purple-900 bg-opacity-30 p-2 rounded-lg text-lg font-bold min-w-[30px] text-center">
+                  <div className="mr-3 bg-purple-900 bg-opacity-30 p-2 rounded-lg text-lg font-bold min-w-[30px] text-center text-white">
                     #{index + 1}
                   </div>
                   <div className="flex-grow">
-                    <h3 className="font-medium">{item.title}</h3>
+                    <h3 className="font-medium text-white">{item.title}</h3>
                     <div className="flex items-center text-sm text-gray-400 mt-1">
                       <div className="mr-3">
                         {item.metrics.views.toLocaleString()} views
@@ -380,28 +379,75 @@ export default function PerformanceTracker() {
           </div>
         </div>
 
-        <div className="card">
-          <h2 className="text-lg font-bold mb-4">Audience Demographics</h2>
+        <div className="card bg-gray-800 border-gray-700">
+          <h2 className="text-lg font-bold mb-4 text-white">Audience Demographics</h2>
           <div className="h-64 bg-gray-800 rounded-lg flex items-center justify-center">
             {/* Placeholder for demographics chart */}
-            <BarChart2 size={48} className="text-gray-500" />
+            <BarChart2 size={48} className="text-gray-400" />
           </div>
           <div className="mt-4 grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-sm text-gray-400">Top Age Group</div>
-              <div className="font-bold">25-34</div>
+              <div className="font-bold text-white">25-34</div>
             </div>
             <div>
               <div className="text-sm text-gray-400">Gender</div>
-              <div className="font-bold">62% Male</div>
+              <div className="font-bold text-white">62% Male</div>
             </div>
             <div>
               <div className="text-sm text-gray-400">Top Location</div>
-              <div className="font-bold">United States</div>
+              <div className="font-bold text-white">United States</div>
             </div>
           </div>
         </div>
       </div>
+
+      <style jsx global>{`
+        .container {
+          max-width: 7xl;
+          margin-left: auto;
+          margin-right: auto;
+          padding-left: 1rem;
+          padding-right: 1rem;
+        }
+        .card {
+          background: #1f2937;
+          border: 1px solid #374151;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+        }
+        .input {
+          background: #374151;
+          border: 1px solid #4a5568;
+          border-radius: 0.375rem;
+          padding: 0.5rem 0.75rem;
+          color: #fff;
+          appearance: none;
+        }
+        .btn-primary {
+          background: #9333ea;
+          color: white;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          border: none;
+          cursor: pointer;
+        }
+        .btn-primary:hover {
+          background: #a855f7;
+        }
+        .btn-outline {
+          background: transparent;
+          color: #9333ea;
+          border: 1px solid #9333ea;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          cursor: pointer;
+        }
+        .btn-outline:hover {
+          background: #9333ea;
+          color: white;
+        }
+      `}</style>
     </div>
   );
 }
